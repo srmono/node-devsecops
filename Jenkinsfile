@@ -36,7 +36,7 @@ pipeline{
 			}
 		}
 
-        state('tooling versions') {
+        stage('tooling versions') {
             steps {
                 sh '''
                     docker --version
