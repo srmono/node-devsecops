@@ -13,7 +13,12 @@ node ('ubuntu-app-agent'){
     stage('Build-and-Tag') {
     /* This builds the actual image; synonymous to
          * docker build on the command line */
-        app = docker build "ustapi/snake"
+        //app = docker build "ustapi/snake"
+        steps{
+            script{
+                sh `docker build -t ustapi/snake`
+            }
+        }
     }
     stage('Post-to-dockerhub') {
     
