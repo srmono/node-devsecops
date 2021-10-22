@@ -1,41 +1,62 @@
-node ('ubuntu-app-agent'){  
-    def app
+pipeline{
 
-    stage('Cloning Git') {
-        /* Let's make sure we have the repository cloned to our workspace */
-       checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: 'gitcred', url: 'https://github.com/srmono/node-devsecops.git']]])
-    }  
-    /*stage('SAST'){
-        build 'SECURITY-SAST-SNYK'
-    }*/
+	agent {label 'ubuntu-app-agent'}
 
-    
-    stage('Build-and-Tag') {
-    /* This builds the actual image; synonymous to
-         * docker build on the command line */
-        app = docker.build "ustapi/snake"
-        
-    }
-    stage('Post-to-dockerhub') {
-    
-        docker.withRegistry('https://registry.hub.docker.com', 'training_creds') {
-            app.push("latest")
-        			}
-         }
-   /* stage('SECURITY-IMAGE-SCANNER'){
-        build 'SECURITY-IMAGE-SCANNER-AQUAMICROSCANNER'
-    }*/
-  
-    
-    stage('Pull-image-server') {
-    
-         sh "docker-compose down"
-         sh "docker-compose up -d"	
-      }
-    
-   /* stage('DAST')
-        {
-            build 'SECURITY-DAST-OWASP_ZAP'
-        }*/
- 
+	environment {
+		DOCKERHUB_CREDENTIALS=credentials('training_creds')
+	}
+
+	stages {
+	    
+	    stage('gitclone') {
+
+			steps {
+				git 'https://github.com/srmono/node-devsecops.git'
+			}
+		}
+
+		stage('Build') {
+
+			steps {
+				sh 'docker build -t ustapi/snake:latest .'
+			}
+		}
+
+		stage('Login') {
+
+			steps {
+				sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+			}
+		}
+
+		stage('Push') {
+
+			steps {
+				sh 'docker push ustapi/snake:latest'
+			}
+		}
+
+        state('tooling versions') {
+            steps {
+                sh '''
+                    docker --version
+                    docker compose version
+                '''
+            }
+        }
+        stage('Deploy') {
+
+			steps {
+				sh 'docker-compose down'
+                sh 'docker-compose up -d'
+			}
+		}
+	}
+
+	post {
+		always {
+			sh 'docker logout'
+		}
+	}
+
 }
