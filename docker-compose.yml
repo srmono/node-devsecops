@@ -1,7 +1,7 @@
 version: '2'
 services:
   snake:
-    image: 'ustapi/snake'
+    image: 'ustapi/snake:latest'
     environment:
       - "PORT:3000"
     ports:
